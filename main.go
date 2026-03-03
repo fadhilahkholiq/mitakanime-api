@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -237,7 +238,13 @@ func getHTML(targetUrl string) (*goquery.Document, error) {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
+		bodyBytes, _ := io.ReadAll(res.Body)
+		htmlError := string(bodyBytes)
+		if len(htmlError) > 500 {
+			htmlError = htmlError[:500]
+		}
 		fmt.Printf("⚠️ DIBLOKIR! Status Code: %d saat mengakses URL: %s\n", res.StatusCode, targetUrl)
+		fmt.Println("🔍 ISI HALAMAN ERROR:", htmlError)
 		return nil, fmt.Errorf("error status code: %d", res.StatusCode)
 	}
 	return goquery.NewDocumentFromReader(res.Body)
