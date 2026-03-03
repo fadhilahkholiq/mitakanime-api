@@ -271,7 +271,7 @@ func main() {
 				img, _ := s.Find(".thumbz img").Attr("src")
 				completedList = append(completedList, AnimeCompleted{Title: s.Find(".jdlflm").Text(), Poster: img, Episodes: extractNumber(epText), Score: strings.TrimSpace(s.Find(".epztipe").Text()), LastReleaseDate: strings.TrimSpace(s.Find(".newnime").Text()), AnimeId: id, Href: "/anime/anime/" + id, OtakudesuUrl: url})
 			})
-			response := APIResponse{Status: "success", Creator: "Sanka Vollerei", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: HomeData{Ongoing: struct {
+			response := APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: HomeData{Ongoing: struct {
 				Href         string         `json:"href"`
 				OtakudesuUrl string         `json:"otakudesuUrl"`
 				AnimeList    []AnimeOngoing `json:"animeList"`
@@ -300,7 +300,7 @@ func main() {
 				})
 				scheduleData = append(scheduleData, DaySchedule{Day: dayName, AnimeList: animeList})
 			})
-			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Sanka Vollerei", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: scheduleData, Pagination: nil})
+			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: scheduleData, Pagination: nil})
 		})
 		anime.GET("/genre", func(c *gin.Context) {
 			doc, err := getHTML("https://otakudesu.best/genre-list/")
@@ -314,7 +314,7 @@ func main() {
 				id := extractAnimeId(url)
 				genres = append(genres, Genre{Title: s.Text(), GenreId: id, Href: "/anime/genre/" + id, OtakudesuUrl: url})
 			})
-			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Sanka Vollerei", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: map[string][]Genre{"genreList": genres}, Pagination: nil})
+			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: map[string][]Genre{"genreList": genres}, Pagination: nil})
 		})
 		listHandler := func(c *gin.Context, baseUrl string) {
 			pageId := c.DefaultQuery("page", "1")
@@ -331,7 +331,7 @@ func main() {
 				img, _ := s.Find(".thumbz img").Attr("src")
 				animeList = append(animeList, AnimeBaseData{Title: s.Find(".jdlflm").Text(), Poster: img, Episodes: &epInt, Score: strings.TrimSpace(s.Find(".epztipe").Text()), AnimeId: id, Href: "/anime/anime/" + id, OtakudesuUrl: url})
 			})
-			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Sanka Vollerei", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: ListAnimeData{AnimeList: animeList}, Pagination: parsePagination(doc, pageId)})
+			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: ListAnimeData{AnimeList: animeList}, Pagination: parsePagination(doc, pageId)})
 		}
 		anime.GET("/complete-anime", func(c *gin.Context) { listHandler(c, "https://otakudesu.best/complete-anime") })
 		anime.GET("/ongoing-anime", func(c *gin.Context) { listHandler(c, "https://otakudesu.best/ongoing-anime") })
@@ -357,7 +357,7 @@ func main() {
 				epInt := extractNumber(s.Find(".col-anime-eps").Text())
 				animeList = append(animeList, AnimeBaseData{Title: s.Find(".col-anime-title a").Text(), Poster: img, Episodes: &epInt, Studios: s.Find(".col-anime-studio").Text(), Score: s.Find(".col-anime-rating").Text(), AnimeId: id, Href: "/anime/anime/" + id, OtakudesuUrl: url, GenreList: genres})
 			})
-			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Sanka Vollerei", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: ListAnimeData{AnimeList: animeList}, Pagination: parsePagination(doc, pageId)})
+			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: ListAnimeData{AnimeList: animeList}, Pagination: parsePagination(doc, pageId)})
 		})
 		anime.GET("/search/:keyword", func(c *gin.Context) {
 			keyword := c.Param("keyword")
@@ -379,7 +379,7 @@ func main() {
 				})
 				animeList = append(animeList, AnimeBaseData{Title: s.Find("h2 a").Text(), Poster: img, AnimeId: id, Href: "/anime/anime/" + id, OtakudesuUrl: url, GenreList: genres})
 			})
-			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Sanka Vollerei", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: ListAnimeData{AnimeList: animeList}, Pagination: nil})
+			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: ListAnimeData{AnimeList: animeList}, Pagination: nil})
 		})
 		anime.GET("/anime/:animeId", func(c *gin.Context) {
 			animeId := c.Param("animeId")
@@ -438,7 +438,7 @@ func main() {
 				title := s.Find("a").Text()
 				detail.EpisodeList = append(detail.EpisodeList, Episode{Title: title, Eps: extractEpisodeNumber(title), Date: s.Find(".zeebr").Text(), EpisodeId: id, Href: "/anime/episode/" + id, OtakudesuUrl: url})
 			})
-			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Sanka Vollerei", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: detail, Pagination: nil})
+			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: detail, Pagination: nil})
 		})
 		anime.GET("/episode/:episodeId", func(c *gin.Context) {
 			episodeId := c.Param("episodeId")
@@ -533,7 +533,7 @@ func main() {
 				title := a.Text()
 				epsData.Info.EpisodeList = append(epsData.Info.EpisodeList, Episode{Title: title, Eps: extractEpisodeNumber(title), EpisodeId: id, Href: "/anime/episode/" + id, OtakudesuUrl: url})
 			})
-			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Sanka Vollerei", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: epsData, Pagination: nil})
+			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: epsData, Pagination: nil})
 		})
 		anime.GET("/server/:serverId", func(c *gin.Context) {
 			serverId := c.Param("serverId")
@@ -587,7 +587,7 @@ func main() {
 			}
 			docHTML, _ := goquery.NewDocumentFromReader(strings.NewReader(string(decodedHtml)))
 			iframeSrc, _ := docHTML.Find("iframe").Attr("src")
-			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Sanka Vollerei", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: map[string]string{"url": iframeSrc}, Pagination: nil})
+			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: map[string]string{"url": iframeSrc}, Pagination: nil})
 		})
 	}
 	log.Println("Server berjalan di port 80 (http://localhost)")
