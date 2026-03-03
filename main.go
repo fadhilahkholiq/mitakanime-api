@@ -497,9 +497,19 @@ func main() {
 			})
 			doc.Find(".episodelist ul li").Each(func(i int, s *goquery.Selection) {
 				url, _ := s.Find("a").Attr("href")
+				if !strings.Contains(url, "/episode/") {
+					return
+				}
 				id := extractAnimeId(url)
 				title := s.Find("a").Text()
-				detail.EpisodeList = append(detail.EpisodeList, Episode{Title: title, Eps: extractEpisodeNumber(title), Date: s.Find(".zeebr").Text(), EpisodeId: id, Href: "/anime/episode/" + id, OtakudesuUrl: url})
+				detail.EpisodeList = append(detail.EpisodeList, Episode{
+					Title:        title,
+					Eps:          extractEpisodeNumber(title),
+					Date:         s.Find(".zeebr").Text(),
+					EpisodeId:    id,
+					Href:         "/anime/episode/" + id,
+					OtakudesuUrl: url,
+				})
 			})
 			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: detail, Pagination: nil})
 		})
@@ -667,5 +677,5 @@ func main() {
 		})
 	}
 	log.Println("Server berjalan di port 80 (http://localhost)")
-	r.Run(":8080")
+	r.Run(":80")
 }
