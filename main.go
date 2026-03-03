@@ -13,6 +13,9 @@ import (
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
+	fhttp "github.com/bogdanfinn/fhttp"
+	tls_client "github.com/bogdanfinn/tls-client"
+	"github.com/bogdanfinn/tls-client/profiles"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -204,14 +207,29 @@ func extractAnimeId(urlStr string) string {
 	return ""
 }
 func getHTML(targetUrl string) (*goquery.Document, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", targetUrl, nil)
+	options := []tls_client.HttpClientOption{
+		tls_client.WithTimeoutSeconds(30),
+		tls_client.WithClientProfile(profiles.Chrome_120),
+	}
+	client, err := tls_client.NewHttpClient(nil, options...)
+	if err != nil {
+		fmt.Println("Gagal membuat TLS Client:", err)
+		return nil, err
+	}
+	req, err := fhttp.NewRequest(http.MethodGet, targetUrl, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
 	req.Header.Set("Accept-Language", "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7")
+	req.Header.Set("Referer", "https://otakudesu.best/") // Pura-pura datang dari halaman home
+	req.Header.Set("Sec-Ch-Ua", "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"")
+	req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
+	req.Header.Set("Sec-Ch-Ua-Platform", "\"Windows\"")
+	req.Header.Set("Sec-Fetch-Dest", "document")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
 	res, err := client.Do(req)
 	if err != nil {
 		fmt.Println("❌ GAGAL KONEKSI KE URL:", targetUrl, "Error:", err)
