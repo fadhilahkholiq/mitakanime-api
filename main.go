@@ -667,5 +667,5 @@ func main() {
 		})
 	}
 	log.Println("Server berjalan di port 80 (http://localhost)")
-	r.Run(":8080")
+	r.Run(":80")
 }
