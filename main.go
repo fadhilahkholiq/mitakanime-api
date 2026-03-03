@@ -10,8 +10,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -247,6 +249,13 @@ func parsePagination(doc *goquery.Document, currentPageStr string) *Pagination {
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 	anime := r.Group("/anime")
 	{
 		anime.GET("/home", func(c *gin.Context) {
@@ -296,10 +305,26 @@ func main() {
 					title := li.Find("a").Text()
 					url, _ := li.Find("a").Attr("href")
 					slug := extractAnimeId(url)
-					animeList = append(animeList, AnimeSchedule{Title: title, Slug: slug, Url: "/anime/anime/" + slug, Poster: getPoster(slug)})
+					animeList = append(animeList, AnimeSchedule{
+						Title: title,
+						Slug:  slug,
+						Url:   "/anime/anime/" + slug,
+					})
 				})
 				scheduleData = append(scheduleData, DaySchedule{Day: dayName, AnimeList: animeList})
 			})
+			var wg sync.WaitGroup
+			for i := range scheduleData {
+				for j := range scheduleData[i].AnimeList {
+					wg.Add(1)
+					go func(dayIdx, animeIdx int) {
+						defer wg.Done()
+						slug := scheduleData[dayIdx].AnimeList[animeIdx].Slug
+						scheduleData[dayIdx].AnimeList[animeIdx].Poster = getPoster(slug)
+					}(i, j)
+				}
+			}
+			wg.Wait()
 			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: scheduleData, Pagination: nil})
 		})
 		anime.GET("/genre", func(c *gin.Context) {
@@ -449,12 +474,12 @@ func main() {
 			}
 			var epsData EpisodeData
 			epsData.Title = doc.Find(".posttl").Text()
-			epsData.AnimeId = episodeId
 			epsData.ReleaseTime = strings.TrimSpace(strings.ReplaceAll(doc.Find(".kategoz span:contains('Release on')").Text(), "Release on ", ""))
 			epsData.DefaultStreamingUrl, _ = doc.Find("#lightsVideo iframe").Attr("src")
 			if epsData.DefaultStreamingUrl == "" {
 				epsData.DefaultStreamingUrl, _ = doc.Find(".responsive-embed iframe").Attr("src")
 			}
+			epsData.AnimeId = ""
 			doc.Find(".flir a").Each(func(i int, s *goquery.Selection) {
 				text := strings.ToLower(s.Text())
 				url, _ := s.Attr("href")
@@ -465,8 +490,21 @@ func main() {
 				} else if strings.Contains(text, "next") {
 					epsData.HasNextEpisode = true
 					epsData.NextEpisode = &NavEpisode{Title: "Next", EpisodeId: id, Href: "/anime/episode/" + id, OtakudesuUrl: url}
+				} else if strings.Contains(text, "all") || strings.Contains(text, "semua") || strings.Contains(url, "/anime/") {
+					epsData.AnimeId = id
 				}
 			})
+			if epsData.AnimeId == "" {
+				doc.Find(".infozingle a").Each(func(i int, s *goquery.Selection) {
+					href, _ := s.Attr("href")
+					if strings.Contains(href, "/anime/") && epsData.AnimeId == "" {
+						epsData.AnimeId = extractAnimeId(href)
+					}
+				})
+			}
+			if epsData.AnimeId == "" {
+				epsData.AnimeId = episodeId
+			}
 			epsData.Server.Qualities = []ServerQuality{}
 			doc.Find(".mirrorstream ul").Each(func(i int, ul *goquery.Selection) {
 				if qualClass, _ := ul.Attr("class"); qualClass != "" {
@@ -591,5 +629,5 @@ func main() {
 		})
 	}
 	log.Println("Server berjalan di port 80 (http://localhost)")
-	r.Run(":8080")
+	r.Run(":80")
 }
