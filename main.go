@@ -224,7 +224,7 @@ func getHTML(targetUrl string) (*goquery.Document, error) {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
 	req.Header.Set("Accept-Language", "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7")
-	req.Header.Set("Referer", "https://otakudesu.best/") // Pura-pura datang dari halaman home
+	req.Header.Set("Referer", "https://otakudesu.blog/") // Pura-pura datang dari halaman home
 	req.Header.Set("Sec-Ch-Ua", "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"")
 	req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
 	req.Header.Set("Sec-Ch-Ua-Platform", "\"Windows\"")
@@ -250,7 +250,7 @@ func getHTML(targetUrl string) (*goquery.Document, error) {
 	return goquery.NewDocumentFromReader(res.Body)
 }
 func getPoster(animeId string) string {
-	doc, err := getHTML("https://otakudesu.best/anime/" + animeId)
+	doc, err := getHTML("https://otakudesu.blog/anime/" + animeId)
 	if err != nil {
 		return ""
 	}
@@ -297,7 +297,7 @@ func main() {
 	anime := r.Group("/anime")
 	{
 		anime.GET("/home", func(c *gin.Context) {
-			doc, err := getHTML("https://otakudesu.best/")
+			doc, err := getHTML("https://otakudesu.blog/")
 			if err != nil {
 				c.JSON(500, gin.H{"error": "Gagal scraping"})
 				return
@@ -322,15 +322,15 @@ func main() {
 				Href         string         `json:"href"`
 				OtakudesuUrl string         `json:"otakudesuUrl"`
 				AnimeList    []AnimeOngoing `json:"animeList"`
-			}{Href: "/anime/ongoing-anime", OtakudesuUrl: "https://otakudesu.best/ongoing-anime/", AnimeList: ongoingList}, Completed: struct {
+			}{Href: "/anime/ongoing-anime", OtakudesuUrl: "https://otakudesu.blog/ongoing-anime/", AnimeList: ongoingList}, Completed: struct {
 				Href         string           `json:"href"`
 				OtakudesuUrl string           `json:"otakudesuUrl"`
 				AnimeList    []AnimeCompleted `json:"animeList"`
-			}{Href: "/anime/complete-anime", OtakudesuUrl: "https://otakudesu.best/complete-anime/", AnimeList: completedList}}, Pagination: nil}
+			}{Href: "/anime/complete-anime", OtakudesuUrl: "https://otakudesu.blog/complete-anime/", AnimeList: completedList}}, Pagination: nil}
 			c.IndentedJSON(200, response)
 		})
 		anime.GET("/schedule", func(c *gin.Context) {
-			doc, err := getHTML("https://otakudesu.best/jadwal-rilis/")
+			doc, err := getHTML("https://otakudesu.blog/jadwal-rilis/")
 			if err != nil {
 				c.JSON(500, gin.H{"error": "Gagal scraping"})
 				return
@@ -366,7 +366,7 @@ func main() {
 			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: scheduleData, Pagination: nil})
 		})
 		anime.GET("/genre", func(c *gin.Context) {
-			doc, err := getHTML("https://otakudesu.best/genre-list/")
+			doc, err := getHTML("https://otakudesu.blog/genre-list/")
 			if err != nil {
 				c.JSON(500, gin.H{"error": "Gagal scraping"})
 				return
@@ -396,12 +396,12 @@ func main() {
 			})
 			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: ListAnimeData{AnimeList: animeList}, Pagination: parsePagination(doc, pageId)})
 		}
-		anime.GET("/complete-anime", func(c *gin.Context) { listHandler(c, "https://otakudesu.best/complete-anime") })
-		anime.GET("/ongoing-anime", func(c *gin.Context) { listHandler(c, "https://otakudesu.best/ongoing-anime") })
+		anime.GET("/complete-anime", func(c *gin.Context) { listHandler(c, "https://otakudesu.blog/complete-anime") })
+		anime.GET("/ongoing-anime", func(c *gin.Context) { listHandler(c, "https://otakudesu.blog/ongoing-anime") })
 		anime.GET("/genre/:genreId", func(c *gin.Context) {
 			genreId := c.Param("genreId")
 			pageId := c.DefaultQuery("page", "1")
-			doc, err := getHTML(fmt.Sprintf("https://otakudesu.best/genres/%s/page/%s/", genreId, pageId))
+			doc, err := getHTML(fmt.Sprintf("https://otakudesu.blog/genres/%s/page/%s/", genreId, pageId))
 			if err != nil {
 				c.JSON(500, gin.H{"error": "Gagal scraping"})
 				return
@@ -424,7 +424,7 @@ func main() {
 		})
 		anime.GET("/search/:keyword", func(c *gin.Context) {
 			keyword := c.Param("keyword")
-			doc, err := getHTML("https://otakudesu.best/?s=" + keyword + "&post_type=anime")
+			doc, err := getHTML("https://otakudesu.blog/?s=" + keyword + "&post_type=anime")
 			if err != nil {
 				c.JSON(500, gin.H{"error": "Gagal scraping"})
 				return
@@ -446,7 +446,7 @@ func main() {
 		})
 		anime.GET("/anime/:animeId", func(c *gin.Context) {
 			animeId := c.Param("animeId")
-			doc, err := getHTML("https://otakudesu.best/anime/" + animeId)
+			doc, err := getHTML("https://otakudesu.blog/anime/" + animeId)
 			if err != nil {
 				c.JSON(500, gin.H{"error": "Gagal scraping"})
 				return
@@ -515,7 +515,7 @@ func main() {
 		})
 		anime.GET("/episode/:episodeId", func(c *gin.Context) {
 			episodeId := c.Param("episodeId")
-			doc, err := getHTML("https://otakudesu.best/episode/" + episodeId)
+			doc, err := getHTML("https://otakudesu.blog/episode/" + episodeId)
 			if err != nil {
 				c.JSON(500, gin.H{"error": "Gagal scraping"})
 				return
@@ -637,7 +637,7 @@ func main() {
 				c.JSON(400, gin.H{"error": "Gagal membaca data JSON serverId"})
 				return
 			}
-			ajaxUrl := "https://otakudesu.best/wp-admin/admin-ajax.php"
+			ajaxUrl := "https://otakudesu.blog/wp-admin/admin-ajax.php"
 			nonceResp, err := http.PostForm(ajaxUrl, url.Values{"action": {"aa1208d27f29ca340c92c66d1926f13f"}})
 			if err != nil {
 				c.JSON(500, gin.H{"error": "Gagal terhubung ke AJAX"})
