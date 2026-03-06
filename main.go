@@ -181,6 +181,16 @@ type EpisodeData struct {
 	DownloadUrl         DownloadInfo `json:"downloadUrl"`
 	Info                MetaInfo     `json:"info"`
 }
+type AnimeUnlimited struct {
+	Title        string `json:"title"`
+	AnimeId      string `json:"animeId"`
+	Href         string `json:"href"`
+	OtakudesuUrl string `json:"otakudesuUrl"`
+}
+type AnimeGroup struct {
+	StartWith string           `json:"startWith"`
+	AnimeList []AnimeUnlimited `json:"animeList"`
+}
 
 func extractNumber(text string) int {
 	re := regexp.MustCompile(`\d+`)
@@ -296,6 +306,52 @@ func main() {
 	}))
 	anime := r.Group("/anime")
 	{
+		anime.GET("/unlimited", func(c *gin.Context) {
+			doc, err := getHTML("https://otakudesu.blog/anime-list/")
+			if err != nil {
+				c.JSON(500, gin.H{"error": "Gagal scraping daftar semua anime"})
+				return
+			}
+			var unlimitedData []AnimeGroup = []AnimeGroup{}
+			doc.Find(".bariskelom").Each(func(i int, s *goquery.Selection) {
+				startWith := strings.TrimSpace(s.Find(".barispenz a").Text())
+				if startWith == "" {
+					return
+				}
+				var animeList []AnimeUnlimited = []AnimeUnlimited{}
+				s.Find(".jdlbar a.hodebgst").Each(func(j int, a *goquery.Selection) {
+					title := strings.TrimSpace(a.Text())
+					if idx := strings.Index(title, "<color"); idx != -1 {
+						title = strings.TrimSpace(title[:idx])
+					}
+					url, _ := a.Attr("href")
+					animeId := extractAnimeId(url)
+					animeList = append(animeList, AnimeUnlimited{
+						Title:        title,
+						AnimeId:      animeId,
+						Href:         "/anime/anime/" + animeId,
+						OtakudesuUrl: url,
+					})
+				})
+				if len(animeList) > 0 {
+					unlimitedData = append(unlimitedData, AnimeGroup{
+						StartWith: startWith,
+						AnimeList: animeList,
+					})
+				}
+			})
+			c.IndentedJSON(200, APIResponse{
+				Status:        "success",
+				Creator:       "Asa Mitaka",
+				StatusCode:    200,
+				StatusMessage: "OK",
+				Ok:            true,
+				Data: map[string]interface{}{
+					"list": unlimitedData,
+				},
+				Pagination: nil,
+			})
+		})
 		anime.GET("/home", func(c *gin.Context) {
 			doc, err := getHTML("https://otakudesu.blog/")
 			if err != nil {
