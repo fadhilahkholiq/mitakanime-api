@@ -112,20 +112,21 @@ type Episode struct {
 	OtakudesuUrl string `json:"otakudesuUrl"`
 }
 type DetailAnimeData struct {
-	Title       string    `json:"title"`
-	Poster      string    `json:"poster"`
-	Japanese    string    `json:"japanese"`
-	Score       string    `json:"score"`
-	Producers   string    `json:"producers"`
-	Type        string    `json:"type"`
-	Status      string    `json:"status"`
-	Episodes    int       `json:"episodes"`
-	Duration    string    `json:"duration"`
-	Aired       string    `json:"aired"`
-	Studios     string    `json:"studios"`
-	Synopsis    Synopsis  `json:"synopsis"`
-	GenreList   []Genre   `json:"genreList"`
-	EpisodeList []Episode `json:"episodeList"`
+	Title       string     `json:"title"`
+	Poster      string     `json:"poster"`
+	Japanese    string     `json:"japanese"`
+	Score       string     `json:"score"`
+	Producers   string     `json:"producers"`
+	Type        string     `json:"type"`
+	Status      string     `json:"status"`
+	Episodes    int        `json:"episodes"`
+	Duration    string     `json:"duration"`
+	Aired       string     `json:"aired"`
+	Studios     string     `json:"studios"`
+	Synopsis    Synopsis   `json:"synopsis"`
+	GenreList   []Genre    `json:"genreList"`
+	EpisodeList []Episode  `json:"episodeList"`
+	Batch       *BatchLink `json:"batch"`
 }
 type Synopsis struct {
 	Paragraphs []string `json:"paragraphs"`
@@ -190,6 +191,41 @@ type AnimeUnlimited struct {
 type AnimeGroup struct {
 	StartWith string           `json:"startWith"`
 	AnimeList []AnimeUnlimited `json:"animeList"`
+}
+type BatchLink struct {
+	Title        string `json:"title"`
+	BatchId      string `json:"batchId"`
+	Href         string `json:"href"`
+	OtakudesuUrl string `json:"otakudesuUrl"`
+}
+type BatchDetail struct {
+	Title       string          `json:"title"`
+	AnimeId     string          `json:"animeId"`
+	Poster      string          `json:"poster"`
+	Japanese    string          `json:"japanese"`
+	Type        string          `json:"type"`
+	Score       string          `json:"score"`
+	Episodes    int             `json:"episodes"`
+	Duration    string          `json:"duration"`
+	Studios     string          `json:"studios"`
+	Producers   string          `json:"producers"`
+	Aired       string          `json:"aired"`
+	Credit      string          `json:"credit"`
+	GenreList   []Genre         `json:"genreList"`
+	Synopsis    *AnimeSynopsis  `json:"synopsis"`
+	DownloadUrl []BatchDownload `json:"downloadUrl"`
+}
+type BatchDownload struct {
+	Title string     `json:"title"`
+	Size  string     `json:"size"`
+	Urls  []BatchUrl `json:"urls"`
+}
+type BatchUrl struct {
+	Title string `json:"title"`
+	Url   string `json:"url"`
+}
+type AnimeSynopsis struct {
+	Paragraphs []string `json:"paragraphs"`
 }
 
 func extractNumber(text string) int {
@@ -306,6 +342,123 @@ func main() {
 	}))
 	anime := r.Group("/anime")
 	{
+		anime.GET("/batch/:batchId", func(c *gin.Context) {
+			batchId := c.Param("batchId")
+			targetUrl := "https://otakudesu.blog/batch/" + batchId + "/"
+			doc, err := getHTML(targetUrl)
+			if err != nil {
+				c.JSON(500, gin.H{"error": "Gagal scraping data batch"})
+				return
+			}
+			var detail BatchDetail
+			detail.Title = strings.TrimSpace(doc.Find(".venser h1").Text())
+			detail.Title = strings.ReplaceAll(detail.Title, "Subtitle Indonesia", "")
+			detail.Title = strings.TrimSpace(detail.Title)
+			detail.Poster, _ = doc.Find(".imganime img").Attr("src")
+			doc.Find("a").Each(func(i int, s *goquery.Selection) {
+				href, _ := s.Attr("href")
+				if strings.Contains(href, "/anime/") && !strings.Contains(href, "/genre/") && detail.AnimeId == "" {
+					detail.AnimeId = extractAnimeId(href)
+				}
+			})
+			if detail.AnimeId == "" {
+				detail.AnimeId = batchId
+			}
+			detail.GenreList = []Genre{}
+			var currentKey string
+			doc.Find(".infos").Contents().Each(func(i int, s *goquery.Selection) {
+				nodeName := goquery.NodeName(s)
+				if nodeName == "b" {
+					currentKey = strings.TrimSpace(s.Text())
+				} else if nodeName == "#text" {
+					val := strings.TrimSpace(s.Text())
+					if val != "" && val != ":" && currentKey != "" {
+						val = strings.TrimPrefix(val, ":")
+						val = strings.TrimSpace(val)
+						switch currentKey {
+						case "Japanese":
+							detail.Japanese = val
+						case "Type":
+							detail.Type = val
+						case "Score", "Rating":
+							detail.Score = val
+						case "Duration":
+							detail.Duration = val
+						case "Studios":
+							detail.Studios = val
+						case "Producers":
+							detail.Producers = val
+						case "Aired":
+							detail.Aired = val
+						case "Credit":
+							detail.Credit = val
+						case "Episodes":
+							epInt, _ := strconv.Atoi(val)
+							detail.Episodes = epInt
+						}
+						currentKey = ""
+					}
+				}
+			})
+			doc.Find(".infos a").Each(func(j int, a *goquery.Selection) {
+				genreUrl, _ := a.Attr("href")
+				detail.GenreList = append(detail.GenreList, Genre{
+					Title:        a.Text(),
+					GenreId:      extractAnimeId(genreUrl),
+					Href:         "/anime/genre/" + extractAnimeId(genreUrl),
+					OtakudesuUrl: genreUrl,
+				})
+			})
+			var paragraphs []string = []string{}
+			doc.Find(".deskripsi").Each(func(i int, s *goquery.Selection) {
+				if s.Find("p").Length() > 0 {
+					s.Find("p").Each(func(j int, p *goquery.Selection) {
+						text := strings.TrimSpace(p.Text())
+						if text != "" && text != "Sinopsis:" {
+							paragraphs = append(paragraphs, text)
+						}
+					})
+				} else {
+					text := strings.TrimSpace(s.Text())
+					text = strings.Replace(text, "Sinopsis:", "", 1)
+					text = strings.TrimSpace(text)
+					if text != "" {
+						paragraphs = append(paragraphs, text)
+					}
+				}
+			})
+			detail.Synopsis = &AnimeSynopsis{Paragraphs: paragraphs}
+			detail.DownloadUrl = []BatchDownload{}
+			doc.Find(".batchlink ul li").Each(func(i int, s *goquery.Selection) {
+				formatTitle := strings.TrimSpace(s.Find("strong").Text())
+				size := strings.TrimSpace(s.Find("i").Text())
+				var urls []BatchUrl = []BatchUrl{}
+				s.Find("a").Each(func(j int, a *goquery.Selection) {
+					linkTitle := strings.TrimSpace(a.Text())
+					linkHref, _ := a.Attr("href")
+					urls = append(urls, BatchUrl{
+						Title: linkTitle,
+						Url:   linkHref,
+					})
+				})
+				if formatTitle != "" {
+					detail.DownloadUrl = append(detail.DownloadUrl, BatchDownload{
+						Title: formatTitle,
+						Size:  size,
+						Urls:  urls,
+					})
+				}
+			})
+			c.IndentedJSON(200, APIResponse{
+				Status:        "success",
+				Creator:       "Asa Mitaka",
+				StatusCode:    200,
+				StatusMessage: "OK",
+				Ok:            true,
+				Data:          detail,
+				Pagination:    nil,
+			})
+		})
 		anime.GET("/unlimited", func(c *gin.Context) {
 			doc, err := getHTML("https://otakudesu.blog/anime-list/")
 			if err != nil {
@@ -551,8 +704,19 @@ func main() {
 				id := extractAnimeId(url)
 				detail.GenreList = append(detail.GenreList, Genre{Title: s.Text(), GenreId: id, Href: "/anime/genre/" + id, OtakudesuUrl: url})
 			})
+			detail.Batch = nil
 			doc.Find(".episodelist ul li").Each(func(i int, s *goquery.Selection) {
 				url, _ := s.Find("a").Attr("href")
+				if strings.Contains(url, "/batch/") {
+					batchId := extractAnimeId(url)
+					detail.Batch = &BatchLink{
+						Title:        strings.TrimSpace(s.Find("a").Text()),
+						BatchId:      batchId,
+						Href:         "/anime/batch/" + batchId,
+						OtakudesuUrl: url,
+					}
+					return
+				}
 				if !strings.Contains(url, "/episode/") {
 					return
 				}
