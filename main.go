@@ -896,6 +896,6 @@ func main() {
 			c.IndentedJSON(200, APIResponse{Status: "success", Creator: "Asa Mitaka", StatusCode: 200, StatusMessage: "OK", Ok: true, Data: map[string]string{"url": iframeSrc}, Pagination: nil})
 		})
 	}
-	log.Println("Server berjalan di port 80 (http://localhost)")
-	r.Run(":80")
+	log.Println("Server berjalan di port 8083 (http://localhost)")
+	r.Run(":8082")
 }
